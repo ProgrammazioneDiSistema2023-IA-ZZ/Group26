@@ -1,5 +1,6 @@
 use crate::layer::Layer;
 use std::fmt;
+use std::sync::mpsc;
 
 pub struct Network{
     pub number_of_layer: i32,
@@ -28,6 +29,20 @@ impl Network{
         for lasagna in self.layer_array.iter_mut(){                     //Da iter_mut a iter e da &mut mut lasagna a lasagna
             lasagna.init_weights_randomly();
         }
+    }
+
+    pub fn init_channels(&mut self) -> (mpsc::Sender<(Vec<u8>, i32)>, mpsc::Receiver<(Vec<u8>, i32)>){
+        let mut sender_array = Vec::new();
+        let mut receiver_array = Vec::new();
+        for _ in 0..(self.number_of_layer + 1){
+            let (s, r) = mpsc::channel::<(Vec<u8>, i32)>();
+            sender_array.push(s);
+            receiver_array.push(r);
+        }
+        for index in 0..self.number_of_layer{
+            self.layer_array.get(index as usize).unwrap().init_channel(*receiver_array.get(index as usize).unwrap(), *sender_array.get((index + 1) as usize).unwrap());
+        }
+        (*sender_array.get(0).unwrap(), *receiver_array.get(self.number_of_layer as usize).unwrap())
     }
 }
 

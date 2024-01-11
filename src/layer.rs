@@ -1,10 +1,13 @@
 use crate::neuron::Neuron;
 use std::fmt;
+use std::sync::mpsc;
 
 #[derive(Clone)]
 pub struct Layer{
     pub neuron_numer: i32,
-    pub neurons: Vec<Neuron>
+    pub neurons: Vec<Neuron>,
+    pub receiver: mpsc::Receiver<(Vec<u8>, i32)>,
+    pub sender: mpsc::Sender<(Vec<u8>, i32)>
 }
 
 impl Layer{
@@ -16,7 +19,7 @@ impl Layer{
             neuron_array.push(tmp);
         }
 
-        Layer{neuron_numer:dim, neurons:neuron_array}
+        Layer{neuron_numer:dim, neurons:neuron_array, receiver:None, sender:None}
     }
 
     pub fn init_weights_randomly(&mut self){                                     // da &mut self a self
@@ -24,6 +27,11 @@ impl Layer{
             neuron.init_weights_random();
         }
     }
+
+    pub fn init_channel(&mut self, easteregg: mpsc::Receiver<(Vec<u8>, i32)>, sender: mpsc::Sender<(Vec<u8>, i32)>){
+
+    }
+
 }
 
 impl fmt::Display for Layer{
