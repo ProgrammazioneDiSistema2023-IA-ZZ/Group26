@@ -5,13 +5,13 @@ mod layer;
 mod neuron;
 
 fn main() {
-    let input_dim: i32 = 3;
-    let layer_vec: Vec<i32> = vec![input_dim, 2, 4, 1];
+    let input_dim: i32 = 2;
+    let layer_vec: Vec<i32> = vec![input_dim, 3, 1];
     let mut n: Network = Network::new(layer_vec.len() as i32, layer_vec);            // Ho tolto mut davanti a n
 
     n.init_weight_randomly();
 
-    let input: Vec<u8> = vec![1, 2, 3];
+    let input: Vec<u8> = vec![1, 1];
     let time: i32 = 1;
 
     n.process(input, time);

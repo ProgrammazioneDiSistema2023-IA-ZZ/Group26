@@ -53,7 +53,7 @@ impl Network{
             //let data_to_send = input_v.clone();
             //let sender_clone = self.sender.clone();
             //let receiver_clone = Arc::clone(&layer.receiver);
-            let layer_cloned = layer.clone();
+            let mut layer_cloned = layer.clone();
 
             let handle = thread::spawn(move || {
 

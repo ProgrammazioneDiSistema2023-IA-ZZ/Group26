@@ -32,10 +32,23 @@ impl Layer{
 
     }
 
-    pub fn process(self){
-        let data = self.receiver.lock().unwrap().recv().unwrap();
-        println!("{:?} at layer", data);
-        self.sender.send(data);
+    pub fn process(&mut self){
+        let mut output: Vec<u8> = Vec::new();
+        let mut previous_spikes: Vec<u8> = Vec::new();
+
+        while let Ok(data_in) = self.receiver.lock().unwrap().recv(){
+            if data_in.0.iter().any(|&x| x == 1) || output.iter().any(|&x| x == 1){
+                for neuron in self.neurons.iter_mut(){
+                    output.push(neuron.process(data_in.0.clone(), previous_spikes.clone(), data_in.1));
+                }
+            }
+            if output.iter().any(|&x| x == 1) {                         // controllo ridondante per ecvitari di impegnare il canale inutilmente
+                self.sender.send((output.clone(), data_in.1));
+            }
+            previous_spikes = output.clone();
+            //std::mem::swap(&previous_spikes, &output);
+            output.clear();
+        }
     }
 
 }
