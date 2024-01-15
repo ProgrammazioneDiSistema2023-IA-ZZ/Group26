@@ -1,17 +1,19 @@
 use crate::neuron::Neuron;
 use std::fmt;
+use std::mem::needs_drop;
 use std::sync::{mpsc, Mutex, Arc};
 
 #[derive(Clone)]
 pub struct Layer{
     pub neuron_numer: i32,
     pub neurons: Vec<Neuron>,
-    pub receiver: Arc<Mutex<mpsc::Receiver<(Vec<u8>, i32)>>>,
-    pub sender: mpsc::Sender<(Vec<u8>, i32)>
+    pub index:  usize
+    //pub receiver: Arc<Mutex<mpsc::Receiver<(Vec<u8>, i32)>>>,
+    //pub sender: mpsc::Sender<(Vec<u8>, i32)>
 }
 
 impl Layer{
-    pub fn new(layer_index: usize, dim: i32, dim_layer_prec: i32, receiver: Arc<Mutex<mpsc::Receiver<(Vec<u8>, i32)>>>, sender: mpsc::Sender<(Vec<u8>, i32)>) -> Self{
+    pub fn new(layer_index: usize, dim: i32, dim_layer_prec: i32/*, receiver: Arc<Mutex<mpsc::Receiver<(Vec<u8>, i32)>>>, sender: mpsc::Sender<(Vec<u8>, i32)>*/) -> Self{
         let mut neuron_array: Vec<Neuron> = Vec::new();
 
         for i in 0..dim {
@@ -19,7 +21,7 @@ impl Layer{
             neuron_array.push(tmp);
         }
 
-        Layer{neuron_numer:dim, neurons:neuron_array, receiver, sender}
+        Layer{index: layer_index, neuron_numer:dim, neurons:neuron_array/*, receiver, sender*/}
     }
 
     pub fn init_weights_randomly(&mut self){                                     // da &mut self a self
@@ -28,29 +30,35 @@ impl Layer{
         }
     }
 
-    pub fn init_channel(&mut self, easteregg: mpsc::Receiver<(Vec<u8>, i32)>, sender: mpsc::Sender<(Vec<u8>, i32)>){
-
+    pub fn init_weights_defined(&mut self, extra_weights: Vec<Vec<f64>>, intra_weights: Vec<Vec<f64>>){
+        let ref t: Vec<f64> = Vec::new();
+        for (indice, neuron) in self.neurons.iter_mut().enumerate() {
+            neuron.init_weights_defined(intra_weights.get(indice).unwrap().clone(), extra_weights.get(indice).unwrap_or(t).clone());
+        }
     }
 
-    pub fn process(&mut self){
+    pub fn process(&mut self, receiver: Arc<Mutex<mpsc::Receiver<(Vec<u8>, i32)>>>, sender: mpsc::Sender<(Vec<u8>, i32)>){
         let mut output: Vec<u8> = Vec::new();
         let mut previous_spikes: Vec<u8> = Vec::new();
 
-        while let Ok(data_in) = self.receiver.lock().unwrap().recv(){
-            if data_in.0.iter().any(|&x| x == 1) || output.iter().any(|&x| x == 1){
-                for neuron in self.neurons.iter_mut(){
+        while let Ok(data_in) = receiver.lock().unwrap().recv() {
+            if data_in.0.iter().any(|&x| x == 1) || output.iter().any(|&x| x == 1) {
+                for neuron in self.neurons.iter_mut() {
                     output.push(neuron.process(data_in.0.clone(), previous_spikes.clone(), data_in.1));
                 }
             }
+            println!("{}, {:?}", self.index, output);
+
             if output.iter().any(|&x| x == 1) {                         // controllo ridondante per ecvitari di impegnare il canale inutilmente
-                self.sender.send((output.clone(), data_in.1));
+                sender.send((output.clone(), data_in.1));
             }
             previous_spikes = output.clone();
             //std::mem::swap(&previous_spikes, &output);
             output.clear();
+            //println!("Layer number: non si sa, {:?}", previous_spikes);
+
         }
     }
-
 }
 
 impl fmt::Display for Layer{

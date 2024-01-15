@@ -1,6 +1,5 @@
 use rand::Rng;
 use std::fmt;
-use std::ops::Index;
 
 #[derive(Clone)]
 pub struct Neuron{
@@ -23,7 +22,7 @@ impl Neuron{
         Neuron{
             index,
             layer_index,
-            v_soglia: 0.5,
+            v_soglia: 0.2,
             v_riposo: 0.3,
             v_reset: 0.0,
             v_memorizzato:0.0,
@@ -38,7 +37,7 @@ impl Neuron{
     pub fn init_weights_random(&mut self){
         let mut rng = rand::thread_rng();
         for _ in 0..self.layer_actual_dim{
-            self.intra_weights.push(rng.gen_range(-1.0..0.0));
+            self.intra_weights.push(rng.gen_range(0.0..1.0));
         }
         for _ in 0..self.layer_prec_dim{
             self.extra_weights.push(rng.gen_range(0.0..1.0));
@@ -53,18 +52,24 @@ impl Neuron{
     pub fn process(&mut self, spikes_extra: Vec<u8>, spikes_intra:Vec<u8>, time: i32) -> u8{
         let mut summation: f64 = 0.0;
         let mut ret_val: u8 = 0;
-        for (index, &e) in spikes_extra.iter().enumerate(){
-            println!("{index}, {e} at neuron {} of {} layer", self.index, self.layer_index);
-            //summation += (e as f64) * (*self.extra_weights.get(index).unwrap());
+        if self.layer_index != 0 {
+            for (index, &e) in spikes_extra.iter().enumerate() {
+                //println!("{index}, {e} at neuron {} of {} layer", self.index, self.layer_index);
+                summation += (e as f64) * (*self.extra_weights.get(index).unwrap());
+            }
+        }
+        else{
+            self.v_memorizzato = *spikes_extra.get(self.index).unwrap() as f64;
         }
         for (index, &e) in spikes_intra.iter().enumerate(){
-            summation += (e as f64) * (*self.intra_weights.get(index).unwrap());
+            if index != self.index {
+                summation += (e as f64) * (*self.intra_weights.get(index).unwrap());
+            }
         }
         // v_mem(ts) = v_rest + [v_mem(ts-1) - v_rest] * e^-((ts-(ts-1))/tau)
-        let mut fall = self.v_riposo + (self.v_memorizzato - self.v_riposo) * (-(time - self.t_prec) as f64 / (self.tau)).exp();
-        self.v_memorizzato = self.v_memorizzato + summation - fall;
+        self.v_memorizzato = self.v_riposo + (self.v_memorizzato - self.v_riposo) * (-(time - self.t_prec) as f64 / (self.tau)).exp() + summation;
         self.t_prec = time;
-        if(self.v_memorizzato >= self.v_soglia){
+        if self.v_memorizzato >= self.v_soglia {
             ret_val = 1;
             self.v_memorizzato = self.v_reset;
         }
