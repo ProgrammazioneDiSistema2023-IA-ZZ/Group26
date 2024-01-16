@@ -1,8 +1,10 @@
+use crate::error::{Componente, Error_res, Tipo};
 use crate::network::Network;
 
 mod network;
 mod layer;
 mod neuron;
+mod error;
 
 fn main() {
     //let input_dim: i32 = 2;
@@ -41,7 +43,12 @@ fn main() {
                                    vec![1, 1],];
     let time: Vec<i32> = vec![1, 2, 3, 4];
 
-    n.process(input, time);
+    let components: Componente = Componente::Soglia;
+    let tipo: Tipo = Tipo::stuckat1;
+    let bit_number : i32 = 52;
+    let error_res = Error_res::new(0, 0, components, tipo, -1, bit_number);
+
+    n.process(input, time, error_res);
 
 
     println!("{}", n);

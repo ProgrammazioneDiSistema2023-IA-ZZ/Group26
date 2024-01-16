@@ -2,6 +2,7 @@ use crate::neuron::Neuron;
 use std::fmt;
 use std::mem::needs_drop;
 use std::sync::{mpsc, Mutex, Arc};
+use crate::error::Error_res;
 
 #[derive(Clone)]
 pub struct Layer{
@@ -37,14 +38,14 @@ impl Layer{
         }
     }
 
-    pub fn process(&mut self, receiver: Arc<Mutex<mpsc::Receiver<(Vec<u8>, i32)>>>, sender: mpsc::Sender<(Vec<u8>, i32)>){
+    pub fn process(&mut self, receiver: Arc<Mutex<mpsc::Receiver<(Vec<u8>, i32)>>>, sender: mpsc::Sender<(Vec<u8>, i32)>, error_res: Error_res){
         let mut output: Vec<u8> = Vec::new();
         let mut previous_spikes: Vec<u8> = Vec::new();
 
         while let Ok(data_in) = receiver.lock().unwrap().recv() {
             if data_in.0.iter().any(|&x| x == 1) || output.iter().any(|&x| x == 1) {
                 for neuron in self.neurons.iter_mut() {
-                    output.push(neuron.process(data_in.0.clone(), previous_spikes.clone(), data_in.1));
+                    output.push(neuron.process(data_in.0.clone(), previous_spikes.clone(), data_in.1, error_res));
                 }
             }
             println!("{}, {:?}", self.index, output);

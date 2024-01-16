@@ -3,6 +3,7 @@ use std::fmt;
 use std::sync::{mpsc, Mutex, Arc};
 use std::sync::mpsc::Sender;
 use std::thread;
+use crate::error::Error_res;
 
 pub struct Network{
     pub number_of_layer: i32,
@@ -51,7 +52,7 @@ impl Network{
         }
     }
 
-    pub fn process(&mut self, input_v: Vec<Vec<u8>>, input_t: Vec<i32>){
+    pub fn process(&mut self, input_v: Vec<Vec<u8>>, input_t: Vec<i32>, error_res: Error_res){
         //let mut input_data = input;
         let mut handles = Vec::new();
 
@@ -81,7 +82,7 @@ impl Network{
                 //sender_clone.send((data_to_send, input_t)).unwrap();
 
                 // Receive data from the previous layer
-                layer_cloned.process(Arc::new(Mutex::new(r)), s);
+                layer_cloned.process(Arc::new(Mutex::new(r)), s, error_res);
                 //layer_cloned.process(receiver_array.get(index + 1).unwrap().clone(), sender_array.get(index).unwrap().clone());
 
                 //let received_data = receiver_clone.lock().unwrap().recv().unwrap();

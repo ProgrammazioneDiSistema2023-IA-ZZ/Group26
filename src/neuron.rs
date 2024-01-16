@@ -1,5 +1,8 @@
+use crate::error::{Error_res, Componente, Tipo};
+
 use rand::Rng;
 use std::fmt;
+
 
 #[derive(Clone)]
 pub struct Neuron{
@@ -49,30 +52,81 @@ impl Neuron{
         self.extra_weights = extra_weights;
     }
 
-    pub fn process(&mut self, spikes_extra: Vec<u8>, spikes_intra:Vec<u8>, time: i32) -> u8{
+    pub fn process(&mut self, spikes_extra: Vec<u8>, spikes_intra:Vec<u8>, time: i32, error_res: Error_res) -> u8{
+        let mut ret_val= 0;
         let mut summation: f64 = 0.0;
-        let mut ret_val: u8 = 0;
-        if self.layer_index != 0 {
-            for (index, &e) in spikes_extra.iter().enumerate() {
-                //println!("{index}, {e} at neuron {} of {} layer", self.index, self.layer_index);
-                summation += (e as f64) * (*self.extra_weights.get(index).unwrap());
+        if (error_res.neuron_id == self.index && error_res.layer_id == self.layer_index) {
+            if self.layer_index != 0 {
+                for (index, &e) in spikes_extra.iter().enumerate() {
+                    if (error_res.componenti == Componente::Pesi_e && index == error_res.weight_id as usize) {
+                        summation += (e as f64) * (error_res.apply_error(*self.extra_weights.get(index).unwrap()));
+                    } else {
+                        summation += (e as f64) * (*self.extra_weights.get(index).unwrap());
+                    }
+                }
+            } else {
+                self.v_memorizzato = *spikes_extra.get(self.index).unwrap() as f64;
             }
-        }
-        else{
-            self.v_memorizzato = *spikes_extra.get(self.index).unwrap() as f64;
-        }
-        for (index, &e) in spikes_intra.iter().enumerate(){
-            if index != self.index {
-                summation += (e as f64) * (*self.intra_weights.get(index).unwrap());
+            for (index, &e) in spikes_intra.iter().enumerate() {
+                if index != self.index {
+                    if (error_res.componenti == Componente::Pesi_i && index == error_res.weight_id as usize) {
+                        summation += (e as f64) * (error_res.apply_error(*self.intra_weights.get(index).unwrap()));
+                    } else {
+                        summation += (e as f64) * (*self.intra_weights.get(index).unwrap());
+                    }
+                }
             }
+
+            println!("\t{} {} {}", self.index, self.layer_index, time);
+            println!("\t\tsummation: {}", summation);
+            println!("\t\tvmem: {}", self.v_memorizzato);
+
+            print!("{} {} prima: {}", self.index, self.layer_index, self.v_soglia);
+
+            let new_v_mem = if error_res.componenti == Componente::Memorizzato { error_res.apply_error(self.v_memorizzato) } else { self.v_memorizzato };
+            let new_v_th = if error_res.componenti == Componente::Soglia { error_res.apply_error(self.v_soglia) } else { self.v_soglia };
+            let new_v_reset = if error_res.componenti == Componente::Reset { error_res.apply_error(self.v_reset) } else { self.v_reset };
+            let new_v_rest = if error_res.componenti == Componente::Riposo { error_res.apply_error(self.v_riposo) } else { self.v_riposo };
+
+            println!("\tdopo: {}", new_v_th);
+
+            self.v_memorizzato = new_v_rest + (new_v_mem - new_v_rest) * (-(time - self.t_prec) as f64 / (self.tau)).exp() + summation;
+            self.t_prec = time;
+            if self.v_memorizzato >= new_v_th {
+                ret_val = 1;
+                self.v_memorizzato = new_v_reset;
+            }
+            println!("\t\tafter compare: {}, out:{}", self.v_memorizzato, ret_val);
+        } else {
+            if self.layer_index != 0 {
+                for (index, &e) in spikes_extra.iter().enumerate() {
+                    //println!("{index}, {e} at neuron {} of {} layer", self.index, self.layer_index);
+                    summation += (e as f64) * (*self.extra_weights.get(index).unwrap());
+                }
+            } else {
+                self.v_memorizzato = *spikes_extra.get(self.index).unwrap() as f64;
+            }
+            for (index, &e) in spikes_intra.iter().enumerate() {
+                if index != self.index {
+                    summation += (e as f64) * (*self.intra_weights.get(index).unwrap());
+                }
+            }
+
+            println!("\t{} {} {}", self.index, self.layer_index, time);
+            println!("\t\tsummation: {}", summation);
+            println!("\t\tvmem: {}", self.v_memorizzato);
+
+            // v_mem(ts) = v_rest + [v_mem(ts-1) - v_rest] * e^-((ts-(ts-1))/tau)
+            self.v_memorizzato = self.v_riposo + (self.v_memorizzato - self.v_riposo) * (-(time - self.t_prec) as f64 / (self.tau)).exp() + summation;
+            self.t_prec = time;
+            if self.v_memorizzato >= self.v_soglia {
+                ret_val = 1;
+                self.v_memorizzato = self.v_reset;
+            }
+
+            println!("\t\tafter compare: {}, out:{}", self.v_memorizzato, ret_val);
         }
-        // v_mem(ts) = v_rest + [v_mem(ts-1) - v_rest] * e^-((ts-(ts-1))/tau)
-        self.v_memorizzato = self.v_riposo + (self.v_memorizzato - self.v_riposo) * (-(time - self.t_prec) as f64 / (self.tau)).exp() + summation;
-        self.t_prec = time;
-        if self.v_memorizzato >= self.v_soglia {
-            ret_val = 1;
-            self.v_memorizzato = self.v_reset;
-        }
+        println!("\n\n");
         ret_val
     }
 }
