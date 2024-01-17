@@ -1,14 +1,15 @@
 use crate::neuron::Neuron;
 use std::fmt;
-use std::mem::needs_drop;
+//use std::mem::needs_drop;
 use std::sync::{mpsc, Mutex, Arc};
 use crate::error::Error_res;
 
 #[derive(Clone)]
 pub struct Layer{
-    pub neuron_numer: i32,
+    pub neuron_number: i32,
     pub neurons: Vec<Neuron>,
-    pub index:  usize
+    pub index:  usize,
+    pub dim_layer_prec: i32,
     //pub receiver: Arc<Mutex<mpsc::Receiver<(Vec<u8>, i32)>>>,
     //pub sender: mpsc::Sender<(Vec<u8>, i32)>
 }
@@ -22,12 +23,12 @@ impl Layer{
             neuron_array.push(tmp);
         }
 
-        Layer{index: layer_index, neuron_numer:dim, neurons:neuron_array/*, receiver, sender*/}
+        Layer{index: layer_index, neuron_number:dim, neurons:neuron_array, dim_layer_prec/*, receiver, sender*/}
     }
 
-    pub fn init_weights_randomly(&mut self){                                     // da &mut self a self
+    pub fn init_weights_randomly(&mut self, range: (f64, f64)){                                     // da &mut self a self
         for neuron in self.neurons.iter_mut(){                          // da iter_mut a iter e da &mut mut neuron a neuron
-            neuron.init_weights_random();
+            neuron.init_weights_random(range);
         }
     }
 
@@ -35,6 +36,15 @@ impl Layer{
         let ref t: Vec<f64> = Vec::new();
         for (indice, neuron) in self.neurons.iter_mut().enumerate() {
             neuron.init_weights_defined(intra_weights.get(indice).unwrap().clone(), extra_weights.get(indice).unwrap_or(t).clone());
+        }
+    }
+
+    pub fn init_values_defined(&mut self, soglia: f64, reset: f64, riposo: f64, tau: f64){
+        for neuron in self.neurons.iter_mut(){
+            neuron.setVSoglia(soglia);
+            neuron.setVRiposo(riposo);
+            neuron.setVReset(reset);
+            neuron.setTau(tau);
         }
     }
 
@@ -68,10 +78,10 @@ impl fmt::Display for Layer{
         // stream: `f`. Returns `fmt::Result` which indicates whether the
         // operation succeeded or failed. Note that `write!` uses syntax which
         // is very similar to `println!`.
-        write!(f, "\tLayer dim: {}. Neuron:\n\t\t", self.neuron_numer)?;
+        write!(f, "\tLayer dim: {}. Neuron:\n\t\t", self.neuron_number)?;
         for (i, neuron) in self.neurons.iter().enumerate(){
             write!(f, "{}", neuron)?;
-            if i < ((self.neuron_numer - 1) as usize){
+            if i < ((self.neuron_number - 1) as usize){
                 write!(f, "\t\t")?;
             }
         }

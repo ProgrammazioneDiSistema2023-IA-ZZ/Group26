@@ -1,7 +1,7 @@
 use crate::layer::Layer;
 use std::fmt;
 use std::sync::{mpsc, Mutex, Arc};
-use std::sync::mpsc::Sender;
+//use std::sync::mpsc::Sender;
 use std::thread;
 use crate::error::Error_res;
 
@@ -31,7 +31,8 @@ impl Network{
                 dim_layer_prec = 0;
             }
             else {
-                dim_layer_prec = layer_vec.last().unwrap().neuron_numer;
+                dim_layer_prec = layer_vec.last().unwrap().neuron_number;
+                dim_layer_prec = layer_vec.last().unwrap().neuron_number;
             }
             let tmp: Layer = Layer::new(i, value, dim_layer_prec/*, receiver_array.get(i as usize).unwrap().clone(), sender_array.get((i + 1) as usize).unwrap().clone()*/);
             layer_vec.push(tmp);
@@ -40,15 +41,21 @@ impl Network{
         Network{number_of_layer:nl,layer_array:layer_vec/*, sender:sender_array.get(0).unwrap().clone(), receiver: receiver_array.get(nl as usize).unwrap().clone()*/}
     }
 
-    pub fn init_weight_randomly(&mut self){                                     // Da &mut self a self
+    pub fn init_weight_randomly(&mut self, range: (f64, f64)){                                     // Da &mut self a self
         for lasagna in self.layer_array.iter_mut(){                     //Da iter_mut a iter e da &mut mut lasagna a lasagna
-            lasagna.init_weights_randomly();
+            lasagna.init_weights_randomly(range);
         }
     }
 
     pub fn init_weights_defined(&mut self, extra_weights: Vec<Vec<Vec<f64>>>, intra_weights: Vec<Vec<Vec<f64>>>){
         for (indice, layer) in self.layer_array.iter_mut().enumerate(){
             layer.init_weights_defined(extra_weights.get(indice).unwrap().clone(), intra_weights.get(indice).unwrap().clone());
+        }
+    }
+
+    pub fn init_values_defined(&mut self, soglia: f64, reset: f64, riposo: f64, tau: f64) {
+        for layer in self.layer_array.iter_mut(){
+            layer.init_values_defined(soglia, reset, riposo, tau);
         }
     }
 
@@ -94,9 +101,13 @@ impl Network{
             //input_data = Vec::new(); // Clear input for the next layer
         }
 
-        for (&ref v, &t) in input_v.iter().zip(input_t.iter()){
+        for (v, &t) in input_v.iter().zip(input_t.iter()){
             sender.send((v.clone(), t));
         }
+
+        /*for (&ref v, &t) in input_v.iter().zip(input_t.iter()){
+            sender.send((v.clone(), t));
+        }*/
         //sender.send((input_v.clone(), input_t));
         //self.sender.send((input_v.clone(), input_t));
         drop(sender);
@@ -113,11 +124,11 @@ impl Network{
         //let final_result = r.recv().unwrap();
         //let final_result = receiver.lock().unwrap().recv().unwrap();
 
-        let mut result: (Vec<Vec<u8>>, Vec<i32>) = (Vec::new(), Vec::new());
+        //let mut _result: (Vec<Vec<u8>>, Vec<i32>) = (Vec::new(), Vec::new());
         while let Ok(output) = r.recv(){
             //result.0.push(output.0);
             //result.1.push(output.1);
-            println!("{:?}", output);
+            println!("Output -> {:?}", output);
         }
 
 
