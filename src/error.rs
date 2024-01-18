@@ -1,4 +1,5 @@
 use rand::Rng;
+use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Componente{
@@ -22,7 +23,7 @@ pub enum Tipo{
     Flip,
 }
 #[derive(Debug, Clone, Copy)]
-pub struct Error_res{
+pub struct ErrorRes{
     pub neuron_id: usize,
     pub layer_id: usize,
     pub componenti: Componente,
@@ -32,9 +33,9 @@ pub struct Error_res{
     pub time: i32,
 }
 
-impl Error_res{
+impl ErrorRes{
     pub fn new(neuron_id: usize, layer_id: usize, componenti: Componente, tipo: Tipo, weight_id: i32, bit_number: i32, time: i32) -> Self {
-        Error_res {
+        ErrorRes {
             neuron_id,
             layer_id,
             componenti,
@@ -66,7 +67,7 @@ impl Error_res{
             }
         }
 
-        println!("\t\t\tIn appply_error: before = {}, after = {}", value, f64::from_bits(val));
+        //println!("\t\t\tIn appply_error: before = {}, after = {}", value, f64::from_bits(val));
         f64::from_bits(val)
     }
 
@@ -107,5 +108,14 @@ impl Error_res{
         }
         else { result = com1 >= com2 }
         result
+    }
+}
+
+impl fmt::Display for ErrorRes{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "On neuron {} of layer {}:\n\tType: {:?}, Component affected: {:?}, Bit affected: {}", self.neuron_id, self.layer_id, self.tipo, self.componenti, self.bit_number)?;
+        if self.tipo == Tipo::Flip { write!(f, ", At time: {}", self.time)?; }
+        if self.componenti == Componente::PesiI || self.componenti == Componente::PesiE { write!(f, ", Weight index: {}", self.weight_id)?; }
+        Ok(())
     }
 }

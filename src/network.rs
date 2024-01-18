@@ -3,7 +3,8 @@ use std::fmt;
 use std::sync::{mpsc, Mutex, Arc};
 //use std::sync::mpsc::Sender;
 use std::thread;
-use crate::error::Error_res;
+use crate::error::ErrorRes;
+
 
 pub struct Network{
     pub number_of_layer: i32,
@@ -32,7 +33,6 @@ impl Network{
             }
             else {
                 dim_layer_prec = layer_vec.last().unwrap().neuron_number;
-                dim_layer_prec = layer_vec.last().unwrap().neuron_number;
             }
             let tmp: Layer = Layer::new(i, value, dim_layer_prec/*, receiver_array.get(i as usize).unwrap().clone(), sender_array.get((i + 1) as usize).unwrap().clone()*/);
             layer_vec.push(tmp);
@@ -59,7 +59,7 @@ impl Network{
         }
     }
 
-    pub fn process(&mut self, input_v: Vec<Vec<u8>>, input_t: Vec<i32>, error_res: Error_res){
+    pub fn process(&mut self, input_v: Vec<Vec<u8>>, input_t: Vec<i32>, error_res: ErrorRes) -> (Vec<Vec<u8>>, Vec<i32>){
         //let mut input_data = input;
         let mut handles = Vec::new();
 
@@ -73,7 +73,7 @@ impl Network{
         let (sender, mut r) = mpsc::channel::<(Vec<u8>, i32)>();
 
         // Iterate through layers and create threads
-        for (index, layer) in self.layer_array.iter_mut().enumerate() {
+        for layer in self.layer_array.iter_mut() {
             //let data_to_send = input_v.clone();
             //let sender_clone = self.sender.clone();
             //let receiver_clone = Arc::clone(&layer.receiver);
@@ -124,26 +124,46 @@ impl Network{
         //let final_result = r.recv().unwrap();
         //let final_result = receiver.lock().unwrap().recv().unwrap();
 
-        //let mut _result: (Vec<Vec<u8>>, Vec<i32>) = (Vec::new(), Vec::new());
-        while let Ok(output) = r.recv(){
-            //result.0.push(output.0);
-            //result.1.push(output.1);
-            println!("Output -> {:?}", output);
+        let mut result: (Vec<Vec<u8>>, Vec<i32>) = (Vec::new(), Vec::new());
+        let mut dif = 0;
+        let segnaposto: Vec<u8> = vec![0; self.layer_array.last().unwrap().neuron_number as usize];
+        while let Ok(output) = r.recv() {
+            if output.1 >= 1 && result.1.is_empty() {
+                dif = output.1 - 1;
+                for i in 0..dif {
+                    result.0.push(segnaposto.clone());
+                    result.1.push(i + 1);
+                }
+            } else {
+                dif = output.1 - result.1.last().unwrap();
+                if dif > 1 {
+                    let last_time = *result.1.last().unwrap();
+                    for i in 0..(dif - 1) {
+                        result.0.push(segnaposto.clone());
+                        result.1.push(last_time + i + 1);
+                    }
+                }
+            }
+            result.0.push(output.0);
+            result.1.push(output.1);
         }
-
-
+        dif = (input_t.len() - result.1.len()) as i32;
+        if dif > 0 {
+            let last_time = *result.1.last().unwrap();
+            for i in 0..dif {
+                result.0.push(segnaposto.clone());
+                result.1.push(last_time + i + 1);
+            }
+        }
+        result
     }
 }
 
 impl fmt::Display for Network{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Write strictly the first element into the supplied output
-        // stream: `f`. Returns `fmt::Result` which indicates whether the
-        // operation succeeded or failed. Note that `write!` uses syntax which
-        // is very similar to `println!`.
-        write!(f, "Network dim: {}. Layer:\n", self.number_of_layer)?;
+        write!(f, "Number of layer: {}\n", self.number_of_layer)?;
         for layer in self.layer_array.iter(){
-            write!(f, "{}", layer)?;
+            write!(f, "{}\n", layer)?;
         }
         Ok(())
     }

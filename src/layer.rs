@@ -2,7 +2,7 @@ use crate::neuron::Neuron;
 use std::fmt;
 //use std::mem::needs_drop;
 use std::sync::{mpsc, Mutex, Arc};
-use crate::error::Error_res;
+use crate::error::ErrorRes;
 
 #[derive(Clone)]
 pub struct Layer{
@@ -41,14 +41,14 @@ impl Layer{
 
     pub fn init_values_defined(&mut self, soglia: f64, reset: f64, riposo: f64, tau: f64){
         for neuron in self.neurons.iter_mut(){
-            neuron.setVSoglia(soglia);
-            neuron.setVRiposo(riposo);
-            neuron.setVReset(reset);
-            neuron.setTau(tau);
+            neuron.set_v_soglia(soglia);
+            neuron.set_v_riposo(riposo);
+            neuron.set_v_reset(reset);
+            neuron.set_tau(tau);
         }
     }
 
-    pub fn process(&mut self, receiver: Arc<Mutex<mpsc::Receiver<(Vec<u8>, i32)>>>, sender: mpsc::Sender<(Vec<u8>, i32)>, error_res: Error_res){
+    pub fn process(&mut self, receiver: Arc<Mutex<mpsc::Receiver<(Vec<u8>, i32)>>>, sender: mpsc::Sender<(Vec<u8>, i32)>, error_res: ErrorRes){
         let mut output: Vec<u8> = Vec::new();
         let mut previous_spikes: Vec<u8> = Vec::new();
 
@@ -58,15 +58,12 @@ impl Layer{
                     output.push(neuron.process(data_in.0.clone(), previous_spikes.clone(), data_in.1, error_res));
                 }
             }
-            println!("{}, {:?}", self.index, output);
 
             if output.iter().any(|&x| x == 1) {                         // controllo ridondante per ecvitari di impegnare il canale inutilmente
                 sender.send((output.clone(), data_in.1));
             }
             previous_spikes = output.clone();
-            //std::mem::swap(&previous_spikes, &output);
             output.clear();
-            //println!("Layer number: non si sa, {:?}", previous_spikes);
 
         }
     }
@@ -74,15 +71,11 @@ impl Layer{
 
 impl fmt::Display for Layer{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Write strictly the first element into the supplied output
-        // stream: `f`. Returns `fmt::Result` which indicates whether the
-        // operation succeeded or failed. Note that `write!` uses syntax which
-        // is very similar to `println!`.
-        write!(f, "\tLayer dim: {}. Neuron:\n\t\t", self.neuron_number)?;
+        write!(f, "Layer number {} has {} neuron(s):\n\t", self.index, self.neuron_number)?;
         for (i, neuron) in self.neurons.iter().enumerate(){
             write!(f, "{}", neuron)?;
             if i < ((self.neuron_number - 1) as usize){
-                write!(f, "\t\t")?;
+                write!(f, "\t")?;
             }
         }
         Ok(())

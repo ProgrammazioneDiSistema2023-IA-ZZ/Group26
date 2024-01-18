@@ -1,4 +1,4 @@
-use crate::error::{Error_res, Componente};
+use crate::error::{ErrorRes, Componente};
 //use crate::error::Tipo;
 use rand::Rng;
 use std::fmt;
@@ -37,16 +37,16 @@ impl Neuron{
             extra_weights: Vec::new()}
     }
 
-    pub fn setVSoglia(&mut self, val: f64) {
+    pub fn set_v_soglia(&mut self, val: f64) {
         self.v_soglia = val;
     }
-    pub fn setVRiposo(&mut self, val: f64) {
+    pub fn set_v_riposo(&mut self, val: f64) {
         self.v_riposo = val;
     }
-    pub fn setVReset(&mut self, val: f64) {
+    pub fn set_v_reset(&mut self, val: f64) {
         self.v_reset = val;
     }
-    pub fn setTau(&mut self, val: f64) {
+    pub fn set_tau(&mut self, val: f64) {
         self.tau = val;
     }
 
@@ -65,7 +65,7 @@ impl Neuron{
         self.extra_weights = extra_weights;
     }
 
-    pub fn process(&mut self, spikes_extra: Vec<u8>, spikes_intra:Vec<u8>, time: i32, error_res: Error_res) -> u8{
+    pub fn process(&mut self, spikes_extra: Vec<u8>, spikes_intra:Vec<u8>, time: i32, error_res: ErrorRes) -> u8{
         let mut ret_val= 0;
         let mut summation: f64 = 0.0;
         if error_res.neuron_id == self.index && error_res.layer_id == self.layer_index {
@@ -98,18 +98,18 @@ impl Neuron{
                 }
             }
 
-            println!("\tn_id: {} \t layer_id: {} \t time: {} \t", self.index, self.layer_index, time);
-            println!("\t\tsummation: {}", summation);
-            println!("\t\tvmem: {}", self.v_memorizzato);
+            //println!("\tn_id: {} \t layer_id: {} \t time: {} \t", self.index, self.layer_index, time);
+            //println!("\t\tsummation: {}", summation);
+            //println!("\t\tvmem: {}", self.v_memorizzato);
 
-            print!("{} {} prima: {}", self.index, self.layer_index, self.v_soglia);
+            //print!("{} {} prima: {}", self.index, self.layer_index, self.v_soglia);
 
             let new_v_mem = if error_res.componenti == Componente::Memorizzato { error_res.apply_error(self.v_memorizzato, time) } else { self.v_memorizzato };
             let new_v_th = if error_res.componenti == Componente::Soglia { error_res.apply_error(self.v_soglia, time) } else { self.v_soglia };
             let new_v_reset = if error_res.componenti == Componente::Reset { error_res.apply_error(self.v_reset, time) } else { self.v_reset };
             let new_v_rest = if error_res.componenti == Componente::Riposo { error_res.apply_error(self.v_riposo, time) } else { self.v_riposo };
 
-            println!("\tdopo: {}", new_v_th);
+            //println!("\tdopo: {}", new_v_th);
 
             let s = error_res.add(new_v_mem, -(new_v_rest), time);
             let p = error_res.mul(s, (-(time - self.t_prec) as f64 / (self.tau)).exp(), time);
@@ -120,7 +120,7 @@ impl Neuron{
                 ret_val = 1;
                 self.v_memorizzato = new_v_reset;
             }
-            println!("\t\tafter compare: {}, out:{}", self.v_memorizzato, ret_val);
+            //println!("\t\tafter compare: {}, out:{}", self.v_memorizzato, ret_val);
         } else {
             if self.layer_index != 0 {
                 for (index, &e) in spikes_extra.iter().enumerate() {
@@ -140,9 +140,9 @@ impl Neuron{
                 }
             }
 
-            println!("\tn_id: {} \t layer_id: {} \t time: {} \t", self.index, self.layer_index, time);
-            println!("\t\tsummation: {}", summation);
-            println!("\t\tvmem: {}", self.v_memorizzato);
+            //println!("\tn_id: {} \t layer_id: {} \t time: {} \t", self.index, self.layer_index, time);
+            //println!("\t\tsummation: {}", summation);
+            //println!("\t\tvmem: {}", self.v_memorizzato);
 
             // v_mem(ts) = v_rest + [v_mem(ts-1) - v_rest] * e^-((ts-(ts-1))/tau)
             let s = error_res.add(self.v_memorizzato, -(self.v_riposo), time);
@@ -155,20 +155,15 @@ impl Neuron{
                 self.v_memorizzato = self.v_reset;
             }
 
-            println!("\t\tafter compare: {}, out:{}", self.v_memorizzato, ret_val);
+            //println!("\t\tafter compare: {}, out:{}", self.v_memorizzato, ret_val);
         }
-        println!("\n\n");
+        //println!("\n\n");
         ret_val
     }
 }
 
 impl fmt::Display for Neuron{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-
-        // Write strictly the first element into the supplied output
-        // stream: `f`. Returns `fmt::Result` which indicates whether the
-        // operation succeeded or failed. Note that `write!` uses syntax which
-        // is very similar to `println!`.
-        write!(f, "Neuron n:{} at layer n:{}, values:\n\t\t\t[v_th:{}, v_rest:{}, v_reset:{}, v_mem:{}, tau:{}]\n\t\t\tIntra weights: {:?}\n\t\t\tExtra weights: {:?}\n", self.index, self.layer_index, self.v_soglia, self.v_riposo, self.v_reset, self.v_memorizzato, self.tau, self.intra_weights, self.extra_weights)
+        write!(f, "Neuron number {}:\n\t\tValues: [v_th:{}, v_rest:{}, v_reset:{}, v_mem:{}, tau:{}]\n\t\tIntra weights: {:?}\n\t\tExtra weights: {:?}\n", self.index, self.v_soglia, self.v_riposo, self.v_reset, self.v_memorizzato, self.tau, self.intra_weights, self.extra_weights)
     }
 }

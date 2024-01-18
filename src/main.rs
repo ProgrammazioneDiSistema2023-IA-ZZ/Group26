@@ -1,9 +1,7 @@
-use crate::error::{Componente, Error_res, Tipo};
+use crate::error::{Componente, ErrorRes, Tipo};
 use crate::network::Network;
-use crate::neuron::Neuron;
 use std::io;
 use rand::Rng;
-use crate::Componente::{Comparatore, PesiI};
 
 mod network;
 mod layer;
@@ -35,22 +33,22 @@ fn main() {
     //         vec![vec![1.0, 1.0], vec![0.5, 1.0], vec![1.0, 2.0]],
     //         vec![vec![1.0, 0.5, 1.0], vec![2.0, 1.0, 1.0]]];
 
-    let input_dim: i32 = 2;
-    let layer_vec: Vec<i32> = vec![input_dim, 1];
+    let input_dim: i32 = 10;
+    let layer_vec: Vec<i32> = vec![input_dim, 15, 20, 20, 15, 10, 5, 4];
     let mut n: Network = Network::new(layer_vec.len() as i32, layer_vec);           // inizializza la rete con parametri standard
     //n.init_values_defined(0.4, 0.1, 0.3, 0.2);
-    let intra_weights: Vec<Vec<Vec<f64>>> =
+    /*let intra_weights: Vec<Vec<Vec<f64>>> =
         vec![vec![vec![0.0, -1.0], vec![-1.0, 0.0]],
             vec![vec![0.0]]];
 
     let extra_weights: Vec<Vec<Vec<f64>>> =
         vec![vec![vec![]],
-            vec![vec![1.0, 1.0]]];
+            vec![vec![1.0, 1.0]]];*/
 
     //n.init_weights_defined(extra_weights, intra_weights);
-    n.init_weight_randomly((0.0, 2.0));
+    n.init_weight_randomly((0.0, 1.0));
 
-    let input: Vec<Vec<u8>> = vec![vec![1, 1],
+    /*let input: Vec<Vec<u8>> = vec![vec![1, 1],
                                    vec![1, 1],
                                    vec![1, 1],
                                    vec![1, 1],];
@@ -59,16 +57,19 @@ fn main() {
     let components: Componente = Componente::None;
     let tipo: Tipo = Tipo::StuckAt1;
     let bit_number : i32 = 52; // 64 bit --> la mantissa è fino al 51 bit, dal 52 esimo al 63 esimo è l'esponente, il 64 esimo è il segno
-    let error_res = Error_res::new(0, 0, components, tipo, -1, bit_number, 5);
+    let error_res = ErrorRes::new(0, 0, components, tipo, -1, bit_number, 5);
 
-    n.process(input, time, error_res);
+    let res = n.process(input, time, error_res);
+    println!("Res: {:?}", res);
 
 
-    println!("{}", n);
+    println!("{}", n);*/
 
 
     //----------------------------------------------------------
 
+
+    println!("{}", n);
 
     // Inizializziamo il generatore di valori casuali
     let mut rng = rand::thread_rng();
@@ -104,6 +105,8 @@ fn main() {
         .expect("Lettura fallita");
     let iteration_number = iteration_number.trim().parse::<i32>().expect("Input non valido");
 
+    //println!("it: {}", iteration_number);
+
     // Definizione del tipo di errore da testare
     let tipo: Tipo = get_error_type();
 
@@ -111,47 +114,58 @@ fn main() {
     let componenti: Vec<Componente> = get_error_component();
 
     // Calcolo output corretti
-    let no_error = Error_res::new(0, 0, Componente::None, Tipo::None, 0, 0, 0);
+    let no_error = ErrorRes::new(0, 0, Componente::None, Tipo::None, 0, 0, 0);
     let result_correct = n.process(input.clone(), input_time.clone(), no_error);
 
     // Misurazione resilienza
     let mut resilienza = 0;
-    for _ in 0..iteration_number{
+    for i in 0..iteration_number{
         let componente: Componente = *componenti.get(rng.gen_range(0..componenti.len())).unwrap();
-        let layer_id: usize = if componente == Componente::PesiE { rng.gen_range(1..=(n.number_of_layer as usize)) } else { rng.gen_range(0..=(n.number_of_layer as usize)) };
-        let neuron_id: usize = rng.gen_range(0..=(n.layer_array.get(layer_id).unwrap().neuron_number as usize));
+        let layer_id: usize = if componente == Componente::PesiE { rng.gen_range(1..(n.number_of_layer as usize)) } else { rng.gen_range(0..(n.number_of_layer as usize)) };
+        let neuron_id: usize = rng.gen_range(0..((*n.layer_array.get(layer_id).unwrap()).neuron_number as usize));
         let weight_id: i32 = if componente == Componente::PesiE {
-            rng.gen_range(0..=(n.layer_array.get(layer_id).unwrap().dim_layer_prec as i32))
+            rng.gen_range(0..(n.layer_array.get(layer_id).unwrap().dim_layer_prec as i32))
         } else if componente == Componente::PesiI{
-            rng.gen_range(0..=(n.layer_array.get(layer_id).unwrap().neuron_number as i32))
+            rng.gen_range(0..(n.layer_array.get(layer_id).unwrap().neuron_number as i32))
         } else {
             0
         };
-        let bit_position: i32 = rng.gen_range(0..64);           // Se non crea spike limitare il range solo all'esponente (bit 52, 62)
-        let time: i32 = if tipo == Tipo::Flip { rng.gen_range(0..=input_number) } else  { 0 };
-        let error_resilience = Error_res::new(neuron_id, layer_id, componente, tipo, weight_id, bit_number, time);
+        let bit_position: i32 = rng.gen_range(52..64);           // Se non crea spike limitare il range solo all'esponente (bit 52, 62)
+        let time: i32 = if tipo == Tipo::Flip { rng.gen_range(1..=input_number) } else  { 0 };
+        let error_resilience = ErrorRes::new(neuron_id, layer_id, componente, tipo, weight_id, bit_position, time);
 
         let result = n.process(input.clone(), input_time.clone(), error_resilience);
 
-        resilienza += error_computation(result_correct.clone(), result.clone());
+        //println!("Result : {:?}", result);
+
+        let resilienza_single = error_computation(result_correct.0.clone(), result.0.clone());
+
+
+        println!("Iteration number {}\nError configuration: {}\nError detected = {}\n", i, error_resilience, (input_number - resilienza_single));
+
+        resilienza += resilienza_single;
     }
 
-    let resilienza: f64 = (resilienza as f64) / (input_number * iteration_number);
+    let resilienza: f64 = (resilienza as f64) / ((input_number * iteration_number) as f64);
+    println!("Resilienza: {}", resilienza);
 }
+
+
 
 fn get_error_component() -> Vec<Componente>{
     let mut components: Vec<Componente> = Vec::new();
 
     println!("Seleziona i componenti da testare:");
-    println!("\t0: Soglia");
-    println!("\t1: Riposo");
-    println!("\t2: Reset");
-    println!("\t3: Memorizzato");
-    println!("\t4: Pesi intra");
-    println!("\t5: Pesi extra");
-    println!("\t6: Sommatore");
-    println!("\t7: Moltiplicatore");
-    println!("\t8: Comparatore");
+    println!("0: Soglia");
+    println!("1: Riposo");
+    println!("2: Reset");
+    println!("3: Memorizzato");
+    println!("4: Pesi intra");
+    println!("5: Pesi extra");
+    println!("6: Sommatore");
+    println!("7: Moltiplicatore");
+    println!("8: Comparatore");
+    println!("9: Fine");
 
     loop {
         let mut input = String::new();
