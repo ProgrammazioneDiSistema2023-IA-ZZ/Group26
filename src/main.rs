@@ -58,7 +58,7 @@ fn main() {
     // Definizione della rete
     let mut layer_vec: Vec<i32> = vec![3, 4, 5, 2];
     let mut choice = String::new();
-    println!("Vuoi definire la struttura della rete o usarne una standars (strutturan standard: 3, 4, 5, 2)? [y/n]");
+    println!("\n\nVuoi definire la struttura della rete o usarne una standard? (struttura standard: 3, 4, 5, 2) [y/n]");
     io::stdin()
         .read_line(&mut choice)
         .expect("Lettura fallita");
@@ -70,7 +70,7 @@ fn main() {
     n.init_weight_randomly((0.0, 1.0));
 
     let mut choice = String::new();
-    println!("Vuoi cambiare i valori di default dei potenziali dei neuroni (attualmente: Soglia = 0.2, Reset = 0.0, Riposo = 0.3, Tau = 0.5) [y/n]");
+    println!("Vuoi cambiare i valori di default dei potenziali dei neuroni? (attualmente: Soglia = 0.2, Reset = 0.0, Riposo = 0.3, Tau = 0.5) [y/n]");
     io::stdin()
         .read_line(&mut choice)
         .expect("Lettura fallita");
