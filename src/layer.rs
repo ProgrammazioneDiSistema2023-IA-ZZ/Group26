@@ -78,15 +78,20 @@ impl Layer{
         let mut previous_spikes: Vec<u8> = Vec::new();
 
         while let Ok(data_in) = receiver.lock().unwrap().recv() {
-            if data_in.0.iter().any(|&x| x == 1) || output.iter().any(|&x| x == 1) {
+            if data_in.0.iter().any(|&x| x == 1) || previous_spikes.iter().any(|&x| x == 1) {
                 for neuron in self.neurons.iter_mut() {
                     output.push(neuron.process(data_in.0.clone(), previous_spikes.clone(), data_in.1, error_res));
                 }
             }
 
+            /*
             if output.iter().any(|&x| x == 1) {
                 sender.send((output.clone(), data_in.1));
             }
+            */
+            
+            sender.send((output.clone(), data_in.1));
+
             previous_spikes = output.clone();
             output.clear();
         }
